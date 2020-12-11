@@ -6,3 +6,7 @@
   (->> coll
        (filter f)
        first))
+
+(defn xor [a b]
+  (or (and a (not b))
+      (and b (not a))))

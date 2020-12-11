@@ -1,4 +1,5 @@
-(ns day_2.solution)
+(ns day_2.solution
+  (:require [utils :as u]))
 
 (def input
   (->> "day_2/input.txt"
@@ -19,11 +20,6 @@
 (count (filter password-checker input))
 
 ;---
-
-(defn xor [a b]
-  (or (and a (not b))
-      (and b (not a))))
-
 (defn password-checker
   ^{:meta "part2"}
   [password-summary]
@@ -33,6 +29,6 @@
                          [start-s end-s])
         start? (= char (nth password start))
         end? (= char (nth password end))]
-    (xor start? end?)))
+    (u/xor start? end?)))
 
 (count (filter password-checker input))
