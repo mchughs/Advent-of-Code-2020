@@ -1,4 +1,4 @@
-((ns day_16.solution
+(ns day_16.solution
   (:require [clojure.string :as s]
             [clojure.math.numeric-tower :as math]
             [clojure.set :as ss]
