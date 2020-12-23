@@ -8,50 +8,72 @@
 
 (def input
   (-> "day_19/input.txt"
-    slurp
-    (s/split #"\n\n")))
+    slurp))
 
-(def rules
-  (->> input
-    first
-    s/split-lines
-    (map #(let [label (Long. (last (re-find #"(\d+):" %)))
-                content (last (re-find #": \"*([\d \|\w]+)\"*" %))]
-            {:label label :content content}))
-    (sort-by :label)
-    (map :content)))
+(defn parse-subrules [input]
+  (for [subrules (s/split input #"\|")]
+    (for [index (re-seq #"\d+" subrules)]
+      (Integer/parseInt index))))
 
-(defn apply-sub [z]
-  (let [z' (s/split z #"\|")]
-    (map
-      (fn [s]
-        (or (re-matches #"[ab]" s)
-            (->> s
-                 (re-seq #"\d+")
-                 (map #(apply-sub (nth rules (Integer. %)))))))
-                 ; (apply concat))))
-      z')))
+(defn parse-rules [input]
+  (for [[_ index literal subrules] (re-seq #"(\d+): (?:\"(\w)\"|(.*))" input)]
+    {:left (Integer/parseInt index)
+     :right (if (some? literal)
+              (first literal)
+              (parse-subrules subrules))}))
 
-(def x
-  (->> rules
-       first
-       apply-sub
-       pr-str))
+(defn parse-messages [input]
+  (re-seq #"\w+" input))
 
-(-> x
-  (s/replace #"\"" "")
-  (s/replace #" " "")
-  (s/replace #"^\(+" "")
-  (s/replace #"\)+$" "")
-  (s/replace #"\)\(" "")
-  (s/replace #"^[\)]\)\(^[\(]" "|"))
-  ; re-pattern)
-  ; (s/replace #"(\)\))+(\(\()+" "|"))
+(defn parse-input [input]
+  (let [[rules messages] (s/split input #"\n *\n")]
+    {:rules (->> rules
+              parse-rules
+              (sort-by :left)
+              (mapv :right))
+     :messages (parse-messages messages)}))
 
+(def parsed (parse-input input))
 
-  ; ((a((aa)(bb)(ab)(ba))((ab)(ba)(aa)(bb))b))
-  ; ^a((aa|bb)|(ab|ba))((ab|ba)|(aa|bb))b$)
+(defn consume [messages rule rules]
+  (cond
+    (char? rule)
+    (for [message messages
+          :when (= rule (first message))]
+      (rest message))
 
-  ; (apply c/cartesian-product)
-  ; (map flatten)
-  ; (map (partial apply str)))
+    (sequential? rule)
+    (for [message messages
+          subrules rule
+          leftover (reduce
+                     (fn [submessages subrule]
+                       (consume submessages (rules subrule) rules))
+                     (list message)
+                     subrules)]
+      leftover)))
+
+(defn check-messages [input]
+  (let [{:keys [rules messages]} input]
+    (count
+      (for [message messages
+            leftover (consume (list message) (rules 0) rules)
+            :when (.isEmpty leftover)]
+        message))))
+
+(time (check-messages parsed))
+;---
+
+(defn new-rules [rules]
+  (assoc rules
+    8  '((42)    (42 8))
+    11 '((42 31) (42 11 31))))
+
+(defn check-messages* [input]
+  (let [{:keys [rules messages]} input]
+    (count
+      (for [message messages
+            leftover (consume (list message) (rules 0) (new-rules rules))
+            :when (.isEmpty leftover)]
+        message))))
+
+(time (check-messages* parsed))
